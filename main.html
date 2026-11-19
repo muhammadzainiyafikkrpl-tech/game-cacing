@@ -1,0 +1,977 @@
+```html
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Game Cacing (Ultra-Smooth)</title>
+    <style>
+        /* Reset & Gaya Dasar - Tanpa font eksternal agar instan & ringan */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #0f1115;
+            color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 14px;
+            overflow-x: hidden;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            color: #4ade80;
+            font-size: 1.75rem;
+            font-weight: 800;
+            letter-spacing: 1.8px;
+            text-shadow: 0 2px 12px rgba(74, 222, 128, 0.25);
+        }
+
+        /* Papan Skor */
+        .scoreboard {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            width: 100%;
+            max-width: 400px;
+            background: #181b20;
+            padding: 10px 20px;
+            border-radius: 12px;
+            border: 1px solid #272b33;
+            margin-bottom: 10px;
+        }
+
+        .score-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+        }
+
+        .score-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #94a3b8;
+            letter-spacing: 0.8px;
+            margin-bottom: 2px;
+        }
+
+        .score-value {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: #facc15;
+        }
+
+        /* Panel Kontrol Kesulitan & Tombol Mulai */
+        .controls-panel {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 12px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .difficulty-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #181b20;
+            padding: 6px 12px;
+            border-radius: 10px;
+            border: 1px solid #272b33;
+            flex: 1;
+        }
+
+        .difficulty-wrapper label {
+            font-size: 0.82rem;
+            color: #cbd5e1;
+            font-weight: 600;
+        }
+
+        select {
+            background-color: #22262e;
+            color: #f8fafc;
+            border: 1px solid #333945;
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            width: 100%;
+        }
+
+        select:focus {
+            border-color: #4ade80;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4ade80, #22c55e);
+            color: #052e16;
+            font-weight: 700;
+            font-size: 0.88rem;
+            padding: 9px 15px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.1s ease, filter 0.12s ease;
+            white-space: nowrap;
+        }
+
+        .btn-primary:hover {
+            filter: brightness(1.07);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.96);
+        }
+
+        /* Kontainer Canvas Game */
+        .game-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            aspect-ratio: 1 / 1;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 3px solid #22c55e;
+            background-color: #14171c;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background-color: #14171c;
+            touch-action: none;
+        }
+
+        /* Petunjuk Mulai di atas Canvas sebelum bergerak */
+        #startHint {
+            position: absolute;
+            bottom: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 17, 21, 0.9);
+            color: #e2e8f0;
+            padding: 7px 14px;
+            border-radius: 999px;
+            font-size: 0.76rem;
+            border: 1px solid #334155;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        /* Layar Overlay Game Over */
+        #gameOverScreen {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 17, 21, 0.88);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+            z-index: 10;
+        }
+
+        #gameOverScreen h2 {
+            color: #ef4444;
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 6px;
+            letter-spacing: 1px;
+        }
+
+        #gameOverScreen p {
+            font-size: 1.1rem;
+            color: #e2e8f0;
+            margin-bottom: 6px;
+        }
+
+        #newRecordBadge {
+            display: none;
+            background: rgba(250, 204, 21, 0.15);
+            color: #facc15;
+            border: 1px solid rgba(250, 204, 21, 0.4);
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-bottom: 14px;
+        }
+
+        /* Kontrol Sentuh D-Pad */
+        .dpad-container {
+            margin-top: 12px;
+            display: grid;
+            grid-template-columns: repeat(3, 56px);
+            grid-template-rows: repeat(3, 46px);
+            gap: 7px;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+        }
+
+        .dpad-btn {
+            width: 56px;
+            height: 46px;
+            background: #1e2229;
+            border: 1px solid #333945;
+            border-radius: 12px;
+            color: #f8fafc;
+            font-size: 1.15rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 3px 0 #111317;
+            transition: transform 0.05s ease, background-color 0.07s ease;
+        }
+
+        .dpad-btn:active, .dpad-btn.active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #111317;
+            background-color: #2d333d;
+            border-color: #4ade80;
+            color: #4ade80;
+        }
+
+        .dpad-up { grid-column: 2; grid-row: 1; }
+        .dpad-left { grid-column: 1; grid-row: 2; }
+        .dpad-center {
+            grid-column: 2;
+            grid-row: 2;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #181b20;
+            border: 1px solid #272b33;
+            margin: auto;
+        }
+        .dpad-right { grid-column: 3; grid-row: 2; }
+        .dpad-down { grid-column: 2; grid-row: 3; }
+
+        .instructions {
+            margin-top: 10px;
+            color: #94a3b8;
+            font-size: 0.78rem;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .key-badge {
+            background: #1e2229;
+            color: #e2e8f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #333945;
+            font-weight: 600;
+            font-size: 0.72rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>GAME CACING</h1>
+    </header>
+
+    <!-- Papan Skor -->
+    <div class="scoreboard">
+        <div class="score-box">
+            <span class="score-label">Skor Saat Ini</span>
+            <span class="score-value" id="score">0</span>
+        </div>
+        <div class="score-box">
+            <span class="score-label">High Score</span>
+            <span class="score-value" id="highScore">0</span>
+        </div>
+    </div>
+
+    <!-- Panel Pengaturan Kesulitan & Tombol Mulai -->
+    <div class="controls-panel">
+        <div class="difficulty-wrapper">
+            <label for="difficulty">Kesulitan:</label>
+            <select id="difficulty">
+                <option value="95" selected>Sangat Mudah</option>
+                <option value="130">Mudah</option>
+                <option value="175">Sedang</option>
+                <option value="230">Sulit</option>
+            </select>
+        </div>
+        <button id="startBtn" class="btn-primary">Mulai / Ulangi</button>
+    </div>
+
+    <!-- Area Permainan Canvas -->
+    <div class="game-container" id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div id="startHint">Tekan arah atau sentuh arena untuk mulai</div>
+
+        <!-- Overlay Game Over -->
+        <div id="gameOverScreen">
+            <h2>GAME OVER!</h2>
+            <p>Skor Akhir: <strong id="finalScore" style="color: #facc15;">0</strong></p>
+            <div id="newRecordBadge">★ REKOR BARU! ★</div>
+            <button id="restartBtn" class="btn-primary" style="margin-top: 8px; padding: 12px 24px;">Main Lagi</button>
+        </div>
+    </div>
+
+    <!-- Kontrol Sentuh D-Pad -->
+    <div class="dpad-container" aria-label="Kontrol Arah Layar Sentuh">
+        <button type="button" class="dpad-btn dpad-up" data-dir="UP" aria-label="Atas">▲</button>
+        <button type="button" class="dpad-btn dpad-left" data-dir="LEFT" aria-label="Kiri">◀</button>
+        <div class="dpad-center"></div>
+        <button type="button" class="dpad-btn dpad-right" data-dir="RIGHT" aria-label="Kanan">▶</button>
+        <button type="button" class="dpad-btn dpad-down" data-dir="DOWN" aria-label="Bawah">▼</button>
+    </div>
+
+    <!-- Petunjuk Keyboard & Sentuh -->
+    <div class="instructions">
+        Gunakan <span class="key-badge">↑ ↓ ← →</span> / <span class="key-badge">W A S D</span> / D-Pad atau geser layar untuk belok mulus
+    </div>
+
+    <script>
+        // Referensi Elemen DOM
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d", { alpha: false });
+        const gameContainer = document.getElementById("gameContainer");
+
+        const scoreEl = document.getElementById("score");
+        const highScoreEl = document.getElementById("highScore");
+        const finalScoreEl = document.getElementById("finalScore");
+        const newRecordBadge = document.getElementById("newRecordBadge");
+        const difficultySelect = document.getElementById("difficulty");
+        const startBtn = document.getElementById("startBtn");
+        const restartBtn = document.getElementById("restartBtn");
+        const gameOverScreen = document.getElementById("gameOverScreen");
+        const startHint = document.getElementById("startHint");
+        const dpadButtons = document.querySelectorAll(".dpad-btn");
+
+        // Konstanta Ruang Dunia Logis (400x400 unit presisi floating-point)
+        const WORLD_SIZE = 400;
+        const NODE_SPACING = 6;       // Jarak antar titik tulang belakang (spine nodes = 6px)
+        const HEAD_RADIUS = 8.5;      // Radius kepala cacing
+        const FOOD_RADIUS = 8.5;      // Radius buah
+        const INITIAL_NODES = 12;     // Panjang awal cacing (12 node * 6px = 72px)
+        const NODES_PER_FOOD = 3;     // Penambahan panjang setiap makan buah
+
+        // Offscreen Canvas Pre-Rendered untuk Latar Belakang & Sprite Apel Bercahaya (0 alokasi di game loop)
+        const bgCanvas = document.createElement("canvas");
+        bgCanvas.width = WORLD_SIZE;
+        bgCanvas.height = WORLD_SIZE;
+        const bgCtx = bgCanvas.getContext("2d", { alpha: false });
+
+        const foodSprite = document.createElement("canvas");
+        foodSprite.width = 44;
+        foodSprite.height = 44;
+        const foodCtx = foodSprite.getContext("2d");
+
+        function buildStaticAssets() {
+            // 1. Pre-render grid latar belakang halus ke offscreen canvas
+            bgCtx.fillStyle = "#14171c";
+            bgCtx.fillRect(0, 0, WORLD_SIZE, WORLD_SIZE);
+
+            const tile = 25;
+            bgCtx.fillStyle = "#181c23";
+            for (let y = 0; y < WORLD_SIZE; y += tile) {
+                for (let x = 0; x < WORLD_SIZE; x += tile) {
+                    if (((x / tile) + (y / tile)) % 2 === 0) {
+                        bgCtx.fillRect(x, y, tile, tile);
+                    }
+                }
+            }
+
+            // Garis batas dalam arena yang halus
+            bgCtx.strokeStyle = "rgba(74, 222, 128, 0.14)";
+            bgCtx.lineWidth = 2;
+            bgCtx.strokeRect(1, 1, WORLD_SIZE - 2, WORLD_SIZE - 2);
+
+            // 2. Pre-render sprite apel merah bercahaya sekali saja (menggantikan shadowBlur)
+            const cx = 22;
+            const cy = 22;
+            const glowGrad = foodCtx.createRadialGradient(cx, cy, 2, cx, cy, 20);
+            glowGrad.addColorStop(0, "rgba(239, 68, 68, 0.7)");
+            glowGrad.addColorStop(0.55, "rgba(239, 68, 68, 0.2)");
+            glowGrad.addColorStop(1, "rgba(239, 68, 68, 0)");
+            foodCtx.fillStyle = glowGrad;
+            foodCtx.beginPath();
+            foodCtx.arc(cx, cy, 20, 0, Math.PI * 2);
+            foodCtx.fill();
+
+            // Badan buah apel
+            foodCtx.fillStyle = "#ef4444";
+            foodCtx.beginPath();
+            foodCtx.arc(cx, cy, FOOD_RADIUS, 0, Math.PI * 2);
+            foodCtx.fill();
+
+            // Sorotan kilau buah
+            foodCtx.fillStyle = "#fecaca";
+            foodCtx.beginPath();
+            foodCtx.arc(cx - 2.6, cy - 2.6, 2.3, 0, Math.PI * 2);
+            foodCtx.fill();
+
+            // Daun hijau apel
+            foodCtx.fillStyle = "#4ade80";
+            foodCtx.beginPath();
+            foodCtx.ellipse(cx + 2.2, cy - 8, 3.8, 1.9, -0.45, 0, Math.PI * 2);
+            foodCtx.fill();
+        }
+
+        // Object Pool Partikel Ringan (Maksimal 36 partikel tanpa alokasi objek baru saat bermain)
+        const MAX_PARTICLES = 36;
+        const particlePool = Array.from({ length: MAX_PARTICLES }, () => ({
+            active: false,
+            x: 0,
+            y: 0,
+            vx: 0,
+            vy: 0,
+            life: 0,
+            maxLife: 0.4,
+            size: 3,
+            color: "#facc15"
+        }));
+
+        const PARTICLE_COLORS = ["#facc15", "#4ade80", "#f87171", "#fde047"];
+
+        function spawnEatParticles(px, py) {
+            let spawned = 0;
+            for (let i = 0; i < MAX_PARTICLES && spawned < 12; i++) {
+                const p = particlePool[i];
+                if (!p.active) {
+                    const angle = (Math.PI * 2 * spawned) / 12 + (Math.random() - 0.5) * 0.4;
+                    const speed = 45 + Math.random() * 75;
+                    p.active = true;
+                    p.x = px;
+                    p.y = py;
+                    p.vx = Math.cos(angle) * speed;
+                    p.vy = Math.sin(angle) * speed;
+                    p.life = 0;
+                    p.maxLife = 0.28 + Math.random() * 0.18;
+                    p.size = 2.2 + Math.random() * 2.2;
+                    p.color = PARTICLE_COLORS[spawned % PARTICLE_COLORS.length];
+                    spawned++;
+                }
+            }
+        }
+
+        function updateParticles(dt) {
+            for (let i = 0; i < MAX_PARTICLES; i++) {
+                const p = particlePool[i];
+                if (p.active) {
+                    p.life += dt;
+                    if (p.life >= p.maxLife) {
+                        p.active = false;
+                    } else {
+                        p.x += p.vx * dt;
+                        p.y += p.vy * dt;
+                        p.vx *= 0.94;
+                        p.vy *= 0.94;
+                    }
+                }
+            }
+        }
+
+        // State Tulang Belakang Cacing (Distance-Constrained Spine / IK Chain)
+        let spineNodes = [];          // Array titik tulang belakang { x, y }
+        let currentAngle = 0;         // Sudut hadap kepala saat ini (radian)
+        let targetAngle = 0;          // Sudut tujuan kemudi (radian)
+        let moveSpeed = 95;           // Kecepatan piksel/detik (default: Sangat Mudah = 95 px/s)
+        let isMoving = false;
+        let isGameOver = false;
+
+        let food = { x: 280, y: 200 };
+        let score = 0;
+        let highScore = 0;
+        let isNewRecord = false;
+
+        let lastFrameTime = 0;
+        let animFrameId = null;
+
+        // Helper sudut terpendek [-PI, PI] agar belokan kurva selalu mengambil jalur terdekat
+        function normalizeAngle(angle) {
+            while (angle > Math.PI) angle -= Math.PI * 2;
+            while (angle < -Math.PI) angle += Math.PI * 2;
+            return angle;
+        }
+
+        function angleDiff(from, to) {
+            return normalizeAngle(to - from);
+        }
+
+        // Muat & Simpan High Score
+        function loadHighScore() {
+            try {
+                const saved = localStorage.getItem("snakeHighScore");
+                highScore = saved ? parseInt(saved, 10) || 0 : 0;
+            } catch (e) {
+                highScore = 0;
+            }
+            highScoreEl.textContent = highScore;
+        }
+
+        function saveHighScore(val) {
+            try {
+                localStorage.setItem("snakeHighScore", val.toString());
+            } catch (e) {}
+        }
+
+        // Penyesuaian Resolusi Canvas dengan DPR (max 2 agar ringan di layar Retina/HP)
+        function resizeCanvas() {
+            const rect = gameContainer.getBoundingClientRect();
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            canvas.width = Math.round(rect.width * dpr);
+            canvas.height = Math.round(rect.height * dpr);
+            ctx.setTransform(canvas.width / WORLD_SIZE, 0, 0, canvas.height / WORLD_SIZE, 0, 0);
+            renderFrame(performance.now());
+        }
+
+        // Inisialisasi Permainan Baru
+        function initGame() {
+            moveSpeed = parseFloat(difficultySelect.value) || 95;
+            currentAngle = 0; // Menghadap ke kanan (0 rad)
+            targetAngle = 0;
+            isMoving = false;
+            isGameOver = false;
+            score = 0;
+            isNewRecord = false;
+
+            // Susun rantai spine nodes dari kepala di tengah (200, 200) memanjang ke kiri
+            spineNodes = [];
+            const startX = 210;
+            const startY = 200;
+            for (let i = 0; i < INITIAL_NODES; i++) {
+                spineNodes.push({
+                    x: startX - i * NODE_SPACING,
+                    y: startY
+                });
+            }
+
+            // Reset semua partikel di pool
+            for (let i = 0; i < MAX_PARTICLES; i++) {
+                particlePool[i].active = false;
+            }
+
+            scoreEl.textContent = "0";
+            gameOverScreen.style.display = "none";
+            newRecordBadge.style.display = "none";
+            startHint.style.display = "block";
+
+            spawnFood();
+
+            if (animFrameId) cancelAnimationFrame(animFrameId);
+            lastFrameTime = performance.now();
+            animFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        // Munculkan Buah di Posisi Aman
+        function spawnFood() {
+            const margin = 28;
+            const safeDistSq = 30 * 30;
+
+            for (let attempt = 0; attempt < 60; attempt++) {
+                const fx = margin + Math.random() * (WORLD_SIZE - margin * 2);
+                const fy = margin + Math.random() * (WORLD_SIZE - margin * 2);
+
+                let tooClose = false;
+                for (let i = 0; i < spineNodes.length; i++) {
+                    const dx = spineNodes[i].x - fx;
+                    const dy = spineNodes[i].y - fy;
+                    if (dx * dx + dy * dy < safeDistSq) {
+                        tooClose = true;
+                        break;
+                    }
+                }
+
+                if (!tooClose) {
+                    food.x = fx;
+                    food.y = fy;
+                    return;
+                }
+            }
+
+            food.x = 100 + Math.random() * 200;
+            food.y = 100 + Math.random() * 200;
+        }
+
+        // Kontrol Kemudi 4 Arah (Menetapkan sudut tujuan untuk berbelok melengkung halus)
+        function steerCardinal(dirName) {
+            if (isGameOver) return;
+
+            let desired = currentAngle;
+            if (dirName === "RIGHT") desired = 0;
+            else if (dirName === "DOWN") desired = Math.PI * 0.5;
+            else if (dirName === "LEFT") desired = Math.PI;
+            else if (dirName === "UP") desired = -Math.PI * 0.5;
+
+            // Jika belum bergerak, cegah langsung berbalik ke kiri (PI) menabrak badan awal
+            if (!isMoving && dirName === "LEFT") return;
+
+            // Cegah putar balik 180 derajat langsung jika sudah bergerak
+            const diff = Math.abs(angleDiff(currentAngle, desired));
+            if (isMoving && diff > Math.PI * 0.85) {
+                return;
+            }
+
+            targetAngle = desired;
+
+            if (!isMoving) {
+                isMoving = true;
+                currentAngle = desired;
+                startHint.style.display = "none";
+            }
+        }
+
+        // Kontrol Kemudi Bebas Sudut (Analog / Touch / Pointer ke titik di Canvas)
+        function steerTowardPoint(worldX, worldY) {
+            if (isGameOver || spineNodes.length === 0) return;
+
+            const head = spineNodes[0];
+            const dx = worldX - head.x;
+            const dy = worldY - head.y;
+            if (dx * dx + dy * dy < 16) return; // Abaikan sentuhan tepat di titik kepala
+
+            const desired = Math.atan2(dy, dx);
+
+            // Jika belum mulai bergerak dan sentuhan persis di belakang kepala, arahkan sedikit menyerong agar aman
+            if (!isMoving && Math.abs(angleDiff(0, desired)) > Math.PI * 0.85) {
+                targetAngle = desired >= 0 ? Math.PI * 0.65 : -Math.PI * 0.65;
+                isMoving = true;
+                startHint.style.display = "none";
+                return;
+            }
+
+            targetAngle = desired;
+            if (!isMoving) {
+                isMoving = true;
+                startHint.style.display = "none";
+            }
+        }
+
+        // Event Keyboard (WASD & Panah)
+        document.addEventListener("keydown", (e) => {
+            const key = e.key.toLowerCase();
+            if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(key)) {
+                e.preventDefault();
+            }
+
+            if (key === "arrowright" || key === "d") steerCardinal("RIGHT");
+            else if (key === "arrowdown" || key === "s") steerCardinal("DOWN");
+            else if (key === "arrowleft" || key === "a") steerCardinal("LEFT");
+            else if (key === "arrowup" || key === "w") steerCardinal("UP");
+            else if (key === "enter" && isGameOver) initGame();
+        });
+
+        // Event Tombol Sentuh D-Pad
+        dpadButtons.forEach((btn) => {
+            const onPress = (e) => {
+                e.preventDefault();
+                btn.classList.add("active");
+                steerCardinal(btn.getAttribute("data-dir"));
+            };
+            const onRelease = () => btn.classList.remove("active");
+
+            btn.addEventListener("touchstart", onPress, { passive: false });
+            btn.addEventListener("touchend", onRelease);
+            btn.addEventListener("mousedown", onPress);
+            btn.addEventListener("mouseup", onRelease);
+            btn.addEventListener("mouseleave", onRelease);
+        });
+
+        // Event Sentuh / Drag Langsung di Canvas untuk Belokan Analog Super Mulus
+        let isPointerSteering = false;
+
+        function handleCanvasPointer(clientX, clientY) {
+            const rect = canvas.getBoundingClientRect();
+            const wx = ((clientX - rect.left) / rect.width) * WORLD_SIZE;
+            const wy = ((clientY - rect.top) / rect.height) * WORLD_SIZE;
+            steerTowardPoint(wx, wy);
+        }
+
+        canvas.addEventListener("pointerdown", (e) => {
+            isPointerSteering = true;
+            handleCanvasPointer(e.clientX, e.clientY);
+        });
+
+        canvas.addEventListener("pointermove", (e) => {
+            if (isPointerSteering) {
+                handleCanvasPointer(e.clientX, e.clientY);
+            }
+        });
+
+        window.addEventListener("pointerup", () => {
+            isPointerSteering = false;
+        });
+
+        // Update Fisika & Rantai Tulang Belakang (Distance-Constrained Spine / IK Chain)
+        function updatePhysics(dt) {
+            updateParticles(dt);
+
+            if (!isMoving || isGameOver) return;
+
+            // Radius belok kurva halus: kecepatan sudut sebanding dengan kecepatan gerak agar radius belok konsisten
+            const turnRate = (moveSpeed / 22); // ~4.3 rad/s pada 95px/s -> belokan melengkung indah & presisi
+            const diff = angleDiff(currentAngle, targetAngle);
+            const maxStepAngle = turnRate * dt;
+
+            if (Math.abs(diff) <= maxStepAngle) {
+                currentAngle = targetAngle;
+            } else {
+                currentAngle = normalizeAngle(currentAngle + Math.sign(diff) * maxStepAngle);
+            }
+
+            // Gerakkan kepala dengan kecepatan konstan piksel/detik
+            const stepDist = moveSpeed * dt;
+            const head = spineNodes[0];
+            head.x += Math.cos(currentAngle) * stepDist;
+            head.y += Math.sin(currentAngle) * stepDist;
+
+            // Distance-Constrained IK Chain: setiap node tulang belakang mengikuti node di depannya pada jarak tetap NODE_SPACING
+            for (let i = 1; i < spineNodes.length; i++) {
+                const prev = spineNodes[i - 1];
+                const curr = spineNodes[i];
+                const dx = curr.x - prev.x;
+                const dy = curr.y - prev.y;
+                const dist = Math.hypot(dx, dy);
+
+                if (dist > 0.0001) {
+                    // Interpolasi posisional eksak mempertahankan jarak tetap NODE_SPACING
+                    const ratio = NODE_SPACING / dist;
+                    curr.x = prev.x + dx * ratio;
+                    curr.y = prev.y + dy * ratio;
+                }
+            }
+
+            // 1. Cek Tabrakan Dinding Arena
+            if (
+                head.x - HEAD_RADIUS < 0 ||
+                head.x + HEAD_RADIUS > WORLD_SIZE ||
+                head.y - HEAD_RADIUS < 0 ||
+                head.y + HEAD_RADIUS > WORLD_SIZE
+            ) {
+                triggerGameOver();
+                return;
+            }
+
+            // 2. Cek Makan Buah
+            const fdx = head.x - food.x;
+            const fdy = head.y - food.y;
+            const eatDist = HEAD_RADIUS + FOOD_RADIUS;
+            if (fdx * fdx + fdy * fdy <= eatDist * eatDist) {
+                score += 10;
+                scoreEl.textContent = score;
+
+                if (score > highScore) {
+                    highScore = score;
+                    highScoreEl.textContent = highScore;
+                    isNewRecord = true;
+                    saveHighScore(highScore);
+                }
+
+                // Efek partikel ledakan ringan di lokasi buah
+                spawnEatParticles(food.x, food.y);
+
+                // Tambahkan segmen tulang belakang baru secara mulus di ujung ekor
+                const tail = spineNodes[spineNodes.length - 1];
+                for (let n = 0; n < NODES_PER_FOOD; n++) {
+                    spineNodes.push({ x: tail.x, y: tail.y });
+                }
+
+                spawnFood();
+            }
+
+            // 3. Cek Tabrakan Diri Sendiri (mulai dari node ke-9 agar lengkungan leher alami tidak pernah memicu tabrakan palsu)
+            const selfHitDistSq = (HEAD_RADIUS * 1.35) * (HEAD_RADIUS * 1.35);
+            for (let i = 9; i < spineNodes.length; i++) {
+                const sdx = head.x - spineNodes[i].x;
+                const sdy = head.y - spineNodes[i].y;
+                if (sdx * sdx + sdy * sdy < selfHitDistSq) {
+                    triggerGameOver();
+                    return;
+                }
+            }
+        }
+
+        // Helper menggambar jalur spline halus menggunakan quadraticCurveTo melalui titik tengah antar node
+        function traceSmoothSpinePath(nodes) {
+            const count = nodes.length;
+            if (count === 0) return;
+
+            ctx.beginPath();
+            ctx.moveTo(nodes[0].x, nodes[0].y);
+
+            if (count === 1) return;
+
+            for (let i = 1; i < count - 1; i++) {
+                const midX = (nodes[i].x + nodes[i + 1].x) * 0.5;
+                const midY = (nodes[i].y + nodes[i + 1].y) * 0.5;
+                ctx.quadraticCurveTo(nodes[i].x, nodes[i].y, midX, midY);
+            }
+
+            const last = nodes[count - 1];
+            ctx.lineTo(last.x, last.y);
+        }
+
+        // Rendering Utama 60-144Hz (Zero-Allocation & Sub-Pixel Smooth)
+        function renderFrame(timestamp) {
+            // 1. Gambar latar belakang grid dari offscreen canvas (1x blit super cepat)
+            ctx.drawImage(bgCanvas, 0, 0);
+
+            // 2. Gambar buah apel dengan animasi denyut (pulse) berbasis Math.sin
+            const pulse = 1 + Math.sin((timestamp || 0) * 0.0055) * 0.08;
+            const drawSize = 44 * pulse;
+            ctx.drawImage(
+                foodSprite,
+                food.x - drawSize * 0.5,
+                food.y - drawSize * 0.5,
+                drawSize,
+                drawSize
+            );
+
+            // 3. Gambar partikel ringan jika aktif
+            for (let i = 0; i < MAX_PARTICLES; i++) {
+                const p = particlePool[i];
+                if (p.active) {
+                    const alpha = 1 - p.life / p.maxLife;
+                    ctx.globalAlpha = alpha;
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            ctx.globalAlpha = 1;
+
+            // 4. Gambar Tubuh Cacing dengan Kurva Bezier Kuadratik Mulus & Ekor Meruncing Alami
+            const count = spineNodes.length;
+            if (count > 1) {
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+
+                // Lapisan outline luar tubuh
+                traceSmoothSpinePath(spineNodes);
+                ctx.strokeStyle = "#15803d";
+                ctx.lineWidth = HEAD_RADIUS * 2.05;
+                ctx.stroke();
+
+                // Lapisan badan utama hijau cerah
+                traceSmoothSpinePath(spineNodes);
+                ctx.strokeStyle = "#22c55e";
+                ctx.lineWidth = HEAD_RADIUS * 1.72;
+                ctx.stroke();
+
+                // Lapisan punggung dalam yang mengilap
+                traceSmoothSpinePath(spineNodes);
+                ctx.strokeStyle = "#4ade80";
+                ctx.lineWidth = HEAD_RADIUS * 0.65;
+                ctx.stroke();
+
+                // Ujung ekor meruncing halus pada 4 node terakhir
+                for (let t = Math.max(1, count - 4); t < count; t++) {
+                    const ratio = 1 - (t - (count - 5)) / 5;
+                    const r = Math.max(2.5, HEAD_RADIUS * 0.85 * ratio);
+                    ctx.fillStyle = "#22c55e";
+                    ctx.beginPath();
+                    ctx.arc(spineNodes[t].x, spineNodes[t].y, r, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // 5. Gambar Kepala Cacing & Sepasang Mata yang Mengikuti Sudut Hadap
+            const head = spineNodes[0];
+            if (head) {
+                ctx.save();
+                ctx.translate(head.x, head.y);
+                ctx.rotate(currentAngle);
+
+                // Kepala bulat organik
+                ctx.fillStyle = "#4ade80";
+                ctx.beginPath();
+                ctx.arc(0, 0, HEAD_RADIUS * 1.06, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Mata kiri & kanan
+                ctx.fillStyle = "#ffffff";
+                ctx.beginPath();
+                ctx.arc(3.2, -3.8, 2.6, 0, Math.PI * 2);
+                ctx.arc(3.2, 3.8, 2.6, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Pupil mata
+                ctx.fillStyle = "#052e16";
+                ctx.beginPath();
+                ctx.arc(4.1, -3.8, 1.35, 0, Math.PI * 2);
+                ctx.arc(4.1, 3.8, 1.35, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        // Loop Animasi 60-144Hz dengan Clamped Delta-Time (dt <= 0.05s)
+        function gameLoop(timestamp) {
+            if (!lastFrameTime) lastFrameTime = timestamp;
+            const dt = Math.min((timestamp - lastFrameTime) / 1000, 0.05);
+            lastFrameTime = timestamp;
+
+            updatePhysics(dt);
+            renderFrame(timestamp);
+
+            if (!isGameOver) {
+                animFrameId = requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function triggerGameOver() {
+            isGameOver = true;
+            isMoving = false;
+            if (animFrameId) cancelAnimationFrame(animFrameId);
+            renderFrame(performance.now());
+
+            finalScoreEl.textContent = score;
+            if (isNewRecord && score > 0) {
+                newRecordBadge.style.display = "inline-block";
+            }
+            gameOverScreen.style.display = "flex";
+        }
+
+        // Event Listeners Tombol & Pengaturan
+        startBtn.addEventListener("click", () => {
+            difficultySelect.blur();
+            initGame();
+        });
+
+        difficultySelect.addEventListener("change", () => {
+            difficultySelect.blur();
+            initGame();
+        });
+
+        restartBtn.addEventListener("click", initGame);
+
+        window.addEventListener("resize", resizeCanvas);
+        window.onload = function () {
+            buildStaticAssets();
+            loadHighScore();
+            resizeCanvas();
+            initGame();
+        };
+    </script>
+</body>
+</html>
+```
